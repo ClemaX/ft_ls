@@ -86,7 +86,7 @@ re: fclean all
 
 FORCE: ;
 
-.PHONY: all clean fclean re
+.PHONY: all clean fclean re FORCE
 
 # Assign a value to VERBOSE to enable verbose output
 $(VERBOSE).SILENT:
