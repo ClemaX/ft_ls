@@ -10,3 +10,8 @@ obj/
 # VSCode
 .vscode/settings.json
 !.vscode/c_cpp_properties.json
+
+# clangd
+.cache/
+.vimrc
+compile_commands.json
