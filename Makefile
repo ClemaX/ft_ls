@@ -1,4 +1,4 @@
-NAME = skeleton
+NAME = ft_ls
 
 # Compiler and linker
 CC = clang
