@@ -3,7 +3,8 @@
         {
             "name": "42",
             "includePath": [
-                "${workspaceRoot}/include"
+                "${workspaceRoot}/include",
+                "${workspaceRoot}/lib/libft/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
