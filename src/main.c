@@ -1,4 +1,5 @@
 #include <linux/limits.h>
+#include <stdint.h>
 #include <sys/stat.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -14,6 +15,7 @@ static const char       *option_descriptions[] =
 	"Recursively list subdirectories encountered",
 	"Include directory entries whose name begin with a dot",
 	"Reverse the order of sort",
+	"Display one file per line",
 };
 
 static const char	*option_names[] =
@@ -22,6 +24,7 @@ static const char	*option_names[] =
 	"recursive",
 	"all",
 	"reverse-sort",
+	"one",
 };
 
 static const char	option_short_names[] =
@@ -30,6 +33,7 @@ static const char	option_short_names[] =
 	'R',
 	'a',
 	'r',
+	'1',
 };
 
 static t_ls_opt		get_long_option(const char *name)
@@ -138,7 +142,7 @@ typedef int (t_file_iter_fun(const char *filepath, const struct stat *st,
 
 int	file_iter(const char *filepath, t_file_iter_fun *fun, void *fun_data)
 {
-	static char		full_path[PATH_MAX];
+	char			full_path[PATH_MAX];
 	struct stat 	st;
 	DIR				*dir;
 	struct dirent	*ent;
@@ -153,27 +157,22 @@ int	file_iter(const char *filepath, t_file_iter_fun *fun, void *fun_data)
 			err = dir == NULL;
 			if (err == 0)
 			{
-				ent = readdir(dir);
-				while (ent != NULL && err == 0)
+				do
 				{
-					if (ent->d_type == DT_DIR)
-					{
-						if (!LS_ISBACKREF(ent->d_name))
-							err = fun(ent->d_name, &st, fun_data);
-					}
-					else
+					ent = readdir(dir);
+					if (ent != NULL && !LS_ISBACKREF(ent->d_name))
 					{
 						err = path_cat(full_path, filepath, ent->d_name) == NULL;
 						if (err == 0)
-						{	
+						{
 							err = stat(full_path, &st);
 							if (err == 0)
-								err = fun(ent->d_name, &st, fun_data);	
+								err = fun(full_path, &st, fun_data);
 						}
 						// TODO: Handle MAX_PATH error
 					}
-					ent = readdir(dir);
-				} 
+				}
+				while (err == 0 && ent != NULL);
 				closedir(dir);
 			}
 		}
@@ -187,28 +186,25 @@ int	file_iter(const char *filepath, t_file_iter_fun *fun, void *fun_data)
 int	file_print(const char *filepath, const struct stat *st, void *data)
 {
 	t_ls_opt	options = *(t_ls_opt*)data;
+	int			err;
 
+	err = 0;
 	if (options & LS_OALL || *filepath != '.')
-		ft_dprintf(STDOUT_FILENO, "path: %-24s mode: %d\n", filepath, st->st_mode);
-	return (0);
+		ft_dprintf(STDOUT_FILENO, "%-24s\n", filepath);
+	if (options & LS_ORECURSE && S_ISDIR(st->st_mode))
+	{
+		ft_dprintf(2, "Recursing into %s\n", filepath);
+		err = file_iter(filepath, file_print, data);
+	}
+	return (err);
 }
 
 int	file_list(t_list **list, const char *filepath, t_ls_opt options)
 {
 	(void)list;
-	struct stat	st;
-	int			err;
+	int	err;
 
-	err = 0;
-	if ((options & LS_ORECURSE) == 0)
-		err = file_iter(filepath, file_print, &options);
-	else
-	{
-		err = stat(filepath, &st);
-		if (err == 0)
-			file_print(filepath, &st, &options);
-		// TODO: Handle access errors
-	}
+	err = file_iter(filepath, file_print, &options);
 	return (err);
 }
 
