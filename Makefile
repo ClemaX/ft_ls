@@ -23,6 +23,9 @@ LIBARS = $(notdir $(LIBS))
 # Sources
 INCS = $(LIBINCS) $(INCDIR)
 SRCS = $(addprefix $(SRCDIR)/,\
+	file_iter.c\
+	file_list.c\
+	file_print.c\
 	main.c\
 )
 

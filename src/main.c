@@ -1,13 +1,12 @@
 #include <linux/limits.h>
 #include <stdint.h>
-#include <sys/stat.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <dirent.h>
 
 #include <libft.h>
 
-#include <ft_ls.h>
+#include <file_list.h>
 
 static const char       *option_descriptions[] =
 {
@@ -137,84 +136,13 @@ The options are:\n\
 	}
 }
 
-typedef int (t_file_iter_fun(const char *filepath, const struct stat *st,
-	void *data));
-
-int	file_iter(const char *filepath, t_file_iter_fun *fun, void *fun_data)
-{
-	char			full_path[PATH_MAX];
-	struct stat 	st;
-	DIR				*dir;
-	struct dirent	*ent;
-	int				err;
-
-	err = stat(filepath, &st);
-	if (err == 0)
-	{
-		if (S_ISDIR(st.st_mode))
-		{
-			dir = opendir(filepath);
-			err = dir == NULL;
-			if (err == 0)
-			{
-				do
-				{
-					ent = readdir(dir);
-					if (ent != NULL && !LS_ISBACKREF(ent->d_name))
-					{
-						err = path_cat(full_path, filepath, ent->d_name) == NULL;
-						if (err == 0)
-						{
-							err = stat(full_path, &st);
-							if (err == 0)
-								err = fun(full_path, &st, fun_data);
-						}
-						// TODO: Handle MAX_PATH error
-					}
-				}
-				while (err == 0 && ent != NULL);
-				closedir(dir);
-			}
-		}
-		else
-			err = fun(filepath, &st, fun_data);
-	}
-	// TODO: Handle access errors
-	return (err);
-}
-
-int	file_print(const char *filepath, const struct stat *st, void *data)
-{
-	t_ls_opt	options = *(t_ls_opt*)data;
-	int			err;
-
-	err = 0;
-	if (options & LS_OALL || *filepath != '.')
-		ft_dprintf(STDOUT_FILENO, "%-24s\n", filepath);
-	if (options & LS_ORECURSE && S_ISDIR(st->st_mode))
-	{
-		ft_dprintf(2, "Recursing into %s\n", filepath);
-		err = file_iter(filepath, file_print, data);
-	}
-	return (err);
-}
-
-int	file_list(t_list **list, const char *filepath, t_ls_opt options)
-{
-	(void)list;
-	int	err;
-
-	err = file_iter(filepath, file_print, &options);
-	return (err);
-}
-
 int	ft_ls(const char *filepath, t_ls_opt options)
 {
 	t_list	*files;
 	int		err;
 
 
-	err = file_list(&files, filepath, options);
+	err = file_list(&files, filepath, &options);
 
 	return (err);
 }
