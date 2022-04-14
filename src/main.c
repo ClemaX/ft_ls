@@ -141,9 +141,13 @@ int	ft_ls(const char *filepath, t_ls_opt options)
 	t_list	*files;
 	int		err;
 
-
-	err = file_list(&files, filepath, &options);
-
+	files = NULL;
+	err = file_list(&files, filepath, options);
+	if (err == 0)
+	{
+		file_list_print(files, options);
+		file_list_clear(&files);
+	}
 	return (err);
 }
 

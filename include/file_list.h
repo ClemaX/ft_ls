@@ -25,12 +25,22 @@ typedef int8_t	t_ls_opt;
 
 typedef struct	s_file
 {
-	struct s_file	*children;
-	mode_t			mode;
-	uid_t			uid;
-	gid_t			gid;
-	off_t			size;
-	blkcnt_t		blocks;
+	t_list		*children;
+	char		*name;
+	mode_t		mode;
+	uid_t		uid;
+	gid_t		gid;
+	off_t		size;
+	blkcnt_t	blocks;
 }				t_file;
 
-int	file_list(t_list **list, const char *filepath, void *data);
+typedef struct	s_file_list_data
+{
+	t_list		**files;
+	t_ls_opt	options;
+}				t_file_list_data;
+
+int		file_list(t_list **list, const char *filepath, t_ls_opt options);
+void	file_list_clear(t_list **list);
+
+void	file_list_print(t_list *list, t_ls_opt options);

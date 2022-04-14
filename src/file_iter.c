@@ -26,8 +26,7 @@ int	file_iter(const char *filepath, t_file_iter_fun *fun, void *fun_data)
 				do
 				{
 					ent = readdir(dir);
-					if (ent != NULL
-					&& !(ent->d_type == DT_DIR && FILE_ISBACKREF(ent->d_name)))
+					if (ent != NULL)
 					{
 						err = path_cat(full_path, filepath, ent->d_name) == NULL;
 						if (err == 0)

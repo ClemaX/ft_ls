@@ -1,8 +1,8 @@
 #pragma once
 
+#include "file_list.h"
 #include <sys/stat.h>
 
 #include <file.h>
 
-int	file_print(const char *filepath, const char *basename,
-	const struct stat *st, void *data);
+int	file_print(t_file *file, t_ls_opt options);
