@@ -43,4 +43,4 @@ typedef struct	s_file_list_data
 int		file_list(t_list **list, const char *filepath, t_ls_opt options);
 void	file_list_clear(t_list **list);
 
-void	file_list_print(t_list *list, t_ls_opt options);
+void	file_list_print(t_list *list, t_ls_opt options, const char *parent);

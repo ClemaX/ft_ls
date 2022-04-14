@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 #include <libft.h>
@@ -64,29 +65,85 @@ int		file_load(const char *filepath, const char *basename,
 	return (err);
 }
 
+int		file_cmp_type(t_file *a, t_file *b)
+{
+	if (S_ISDIR(a->mode) && !S_ISDIR(b->mode))
+		return (-1);
+	if (S_ISDIR(b->mode) && !S_ISDIR(a->mode))
+		return (1);
+	return (0);
+}
+
+static const char	*dir_basename(const char *path)
+{
+	int			i;
+	const char	*basename;
+
+	// TODO: Check safety and error cases
+	i = 0;
+	basename = path;
+	while (path[i] != '\0')
+	{
+		if (path[i] == '/' && path[i + 1])
+			basename = (char *)(path + i + 1);
+		i++;
+	}
+	return (basename);
+}
+
+int		file_cmp_name(t_file *a, t_file *b)
+{
+	const char	*basename_a = dir_basename(a->name);
+	const char	*basename_b = dir_basename(b->name);
+
+	return (ft_strcmpi(basename_b, basename_a));
+}
+
 int		file_list(t_list **list, const char *filepath, t_ls_opt options)
 {
 	t_file_list_data	data;
+	int					err;
 
 	data = (t_file_list_data){list, options};
-	return (file_iter(filepath, (t_file_iter_fun*)file_load, &data));
+	err = file_iter(filepath, (t_file_iter_fun*)file_load, &data);
+
+	if (err == 0)
+	{
+		if ((options & LS_OREVERSE) == 0)
+			ft_lstsort(list, (t_cmp_fun*)file_cmp_name);
+		else
+			ft_lstsortrev(list, (t_cmp_fun*)file_cmp_name);
+	}
+
+	return (err);
 }
 
-void	file_list_print(t_list *list, t_ls_opt options)
+void	file_list_print(t_list *list, t_ls_opt options, const char *parent)
 {
+	t_list	*curr;
 	t_file	*file;
 
-	while (list != NULL)
+	if (options & LS_ORECURSE && parent != NULL)
+		ft_printf("\n%s:\n", parent);
+
+	curr = list;
+	while (curr != NULL)
 	{
-		file = list->content;
-		if (file->children == NULL)
-			file_print(file, options);
-		else
+		file = curr->content;
+		file_print(file, options);
+		curr = curr->next;
+	}
+
+	if (options & LS_ORECURSE)
+	{
+		curr = list;
+		while (curr != NULL)
 		{
-			ft_printf("\n%s:\n", file->name);
-			file_list_print(file->children, options);
+			file = curr->content;
+			if (file->children != NULL)
+				file_list_print(file->children, options, file->name);
+			curr = curr->next;
 		}
-		list = list->next;
 	}
 }
 
