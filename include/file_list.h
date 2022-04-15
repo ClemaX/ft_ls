@@ -6,6 +6,7 @@
 #include <libft/lists.h>
 
 #include <file.h>
+#include <time.h>
 
 typedef int8_t	t_ls_opt;
 
@@ -33,6 +34,9 @@ typedef struct	s_file
 	gid_t		gid;
 	off_t		size;
 	blkcnt_t	blocks;
+	time_t		atime;
+	time_t		mtime;
+	time_t		ctime;
 }				t_file;
 
 typedef struct	s_file_list_data

@@ -34,6 +34,9 @@ t_list	*file_new(const char *name, const struct stat *st)
 		file->gid = st->st_gid;
 		file->size = st->st_size;
 		file->blocks = st->st_blocks;
+		file->atime = st->st_atim.tv_sec;
+		file->mtime = st->st_mtim.tv_sec;
+		file->ctime = st->st_ctim.tv_sec;
 		// TODO: Check if we need to handle block size
 	}
 	return (elem);

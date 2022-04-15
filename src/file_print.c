@@ -113,6 +113,15 @@ static void	file_mode(t_file_mode dst, const t_file *file)
 	dst[10] = '\0';
 }
 
+const char	*file_time(t_file *file)
+{
+	char		*time;
+
+	time = ctime(&file->mtime);
+	time[16] = '\0';
+	return (time);
+}
+
 int	file_print(t_file *file, t_ls_opt options, const int fw[FILE_FIELD_COUNT])
 {
 	(void)options;
@@ -120,6 +129,7 @@ int	file_print(t_file *file, t_ls_opt options, const int fw[FILE_FIELD_COUNT])
 	const char	*basename;
 	const struct passwd	*user;
 	const struct group	*group;
+	const char			*time;
 	int			err;
 
 	err = 0;
@@ -133,13 +143,16 @@ int	file_print(t_file *file, t_ls_opt options, const int fw[FILE_FIELD_COUNT])
 	user = getpwuid(file->uid);
 	group = getgrgid(file->gid);
 
-	// TODO: Use macros for type identifiers
-	ft_printf("%*s %*lu %*s %*s %*lu %s\n",
+	time = file_time(file);
+
+	// TODO: Use macros for lu type identifiers
+	ft_printf("%*s %*lu %*s %*s %*lu %*s %s\n",
 		fw[0], mode,
 		fw[1], file->nlink,
 		fw[2], user->pw_name,
 		fw[3], group->gr_name,
 		fw[4], file->size,
+		fw[5], time,
 		basename);
 	return (err);
 }
