@@ -4,7 +4,8 @@
 #include <unistd.h>
 #include <dirent.h>
 
-#include <libft.h>
+#include <libft/printf.h>
+#include <libft/strings.h>
 
 #include <file_list.h>
 

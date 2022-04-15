@@ -2,7 +2,10 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include <libft.h>
+#include <libft/lists.h>
+#include <libft/memory.h>
+#include <libft/printf.h>
+#include <libft/strings.h>
 
 #include <file_iter.h>
 #include <file_list.h>
@@ -24,8 +27,9 @@ t_list	*file_new(const char *name, const struct stat *st)
 		elem->content = file;
 		file->children = NULL;
 		file->name = (char *)(file + 1);
-		ft_strlcpy(file->name, name, name_size);
+		ft_memcpy(file->name, name, name_size);
 		file->mode = st->st_mode;
+		file->nlink = st->st_nlink;
 		file->uid = st->st_uid;
 		file->gid = st->st_gid;
 		file->size = st->st_size;
@@ -120,8 +124,9 @@ int		file_list(t_list **list, const char *filepath, t_ls_opt options)
 
 void	file_list_print(t_list *list, t_ls_opt options, const char *parent)
 {
-	t_list	*curr;
-	t_file	*file;
+	t_list			*curr;
+	t_file			*file;
+	t_field_widths	fw = {};
 
 	if (options & LS_ORECURSE && parent != NULL)
 		ft_printf("\n%s:\n", parent);
@@ -130,7 +135,7 @@ void	file_list_print(t_list *list, t_ls_opt options, const char *parent)
 	while (curr != NULL)
 	{
 		file = curr->content;
-		file_print(file, options);
+		file_print(file, options, fw);
 		curr = curr->next;
 	}
 

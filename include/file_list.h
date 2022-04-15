@@ -3,7 +3,7 @@
 #include <sys/types.h>
 #include <stdint.h>
 
-#include <libft.h>
+#include <libft/lists.h>
 
 #include <file.h>
 
@@ -28,6 +28,7 @@ typedef struct	s_file
 	t_list		*children;
 	char		*name;
 	mode_t		mode;
+	nlink_t		nlink;
 	uid_t		uid;
 	gid_t		gid;
 	off_t		size;

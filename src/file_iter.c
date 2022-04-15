@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <dirent.h>
 
-#include <libft.h>
+#include <libft/paths.h>
 
 #include <file_iter.h>
 
