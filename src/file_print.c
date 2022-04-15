@@ -12,23 +12,6 @@
 #include <file_iter.h>
 #include <file_print.h>
 
-static const char	*dir_basename(const char *path)
-{
-	int			i;
-	const char	*basename;
-
-	// TODO: Check safety and error cases
-	i = 0;
-	basename = path;
-	while (path[i] != '\0')
-	{
-		if (path[i] == '/' && path[i + 1])
-			basename = (char *)(path + i + 1);
-		i++;
-	}
-	return (basename);
-}
-
 static char file_type(const t_file *file)
 {
 	char	type;
@@ -121,38 +104,36 @@ const char	*file_time(t_file *file)
 	time[16] = '\0';
 	return (time);
 }
+/*
+void	file_print_fw(t_file *files, t_field_widths fw)
+{
 
-int	file_print(t_file *file, t_ls_opt options, const int fw[FILE_FIELD_COUNT])
+}
+ */
+int	file_print(t_file *file, const char *user, const char *group,
+	const t_field_widths fw, t_ls_opt options)
 {
 	(void)options;
-	t_file_mode	mode;
-	const char	*basename;
-	const struct passwd	*user;
-	const struct group	*group;
+	t_file_mode			mode;
 	const char			*time;
-	int			err;
+	int					err;
 
 	err = 0;
-	if (S_ISDIR(file->mode))
-		basename = dir_basename(file->name);
-	else
-		basename = file->name;
 
 	file_mode(mode, file);
 
-	user = getpwuid(file->uid);
-	group = getgrgid(file->gid);
-
 	time = file_time(file);
+
+	// TODO: Prefetch user and group names in hashmap
 
 	// TODO: Use macros for lu type identifiers
 	ft_printf("%*s %*lu %*s %*s %*lu %*s %s\n",
 		fw[0], mode,
 		fw[1], file->nlink,
-		fw[2], user->pw_name,
-		fw[3], group->gr_name,
+		fw[2], user,
+		fw[3], group,
 		fw[4], file->size,
 		fw[5], time,
-		basename);
+		file->name);
 	return (err);
 }

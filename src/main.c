@@ -139,15 +139,16 @@ The options are:\n\
 
 int	ft_ls(const char *filepath, t_ls_opt options)
 {
-	t_list	*files;
-	int		err;
+	t_file_list	ls;
+	int			err;
 
-	files = NULL;
-	err = file_list(&files, filepath, options);
+	err = file_list_init(&ls);
 	if (err == 0)
 	{
-		file_list_print(files, options, filepath);
-		file_list_clear(&files);
+		err = file_list(&ls, filepath, options);
+		if (err == 0)
+			file_list_print(&ls);
+		file_list_clear(&ls);
 	}
 	return (err);
 }

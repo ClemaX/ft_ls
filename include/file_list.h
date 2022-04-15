@@ -1,9 +1,12 @@
 #pragma once
 
+#include "libft/hmap/hmap_i.h"
+#include <stddef.h>
 #include <sys/types.h>
 #include <stdint.h>
 
 #include <libft/lists.h>
+#include <libft/hmap_i.h>
 
 #include <file.h>
 #include <time.h>
@@ -28,6 +31,7 @@ typedef struct	s_file
 {
 	t_list		*children;
 	char		*name;
+	char		*path;
 	mode_t		mode;
 	nlink_t		nlink;
 	uid_t		uid;
@@ -39,13 +43,27 @@ typedef struct	s_file
 	time_t		ctime;
 }				t_file;
 
-typedef struct	s_file_list_data
+// Sizes to optimize the hashmaps for
+#ifndef FILE_HMAP_UID_SIZE
+# define FILE_HMAP_UID_SIZE 50
+#endif
+#ifndef FILE_HMAP_GID_SIZE
+# define FILE_HMAP_GID_SIZE 100
+#endif
+
+typedef struct	s_file_list
 {
-	t_list		**files;
+	t_list		*files;
+	t_hmap_i	*users;
+	t_hmap_i	*groups;
+	const char	*parent;
 	t_ls_opt	options;
-}				t_file_list_data;
+}				t_file_list;
 
-int		file_list(t_list **list, const char *filepath, t_ls_opt options);
-void	file_list_clear(t_list **list);
+int		file_list_init(t_file_list *list);
 
-void	file_list_print(t_list *list, t_ls_opt options, const char *parent);
+int		file_list(t_file_list *list, const char *filepath, t_ls_opt options);
+
+void	file_list_clear(t_file_list *list);
+
+void	file_list_print(t_file_list *list);
