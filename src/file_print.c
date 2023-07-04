@@ -1,15 +1,7 @@
-#include <sys/stat.h>
-#include <pwd.h>
-#include <grp.h>
-#include <stdlib.h>
 #include <stdbool.h>
-#include <unistd.h>
 
-#include <libft/paths.h>
 #include <libft/printf.h>
 
-#include <file_list.h>
-#include <file_iter.h>
 #include <file_print.h>
 
 static char file_type(const t_file *file)
@@ -104,13 +96,8 @@ const char	*file_time(t_file *file)
 	time[16] = '\0';
 	return (time);
 }
-/*
-void	file_print_fw(t_file *files, t_field_widths fw)
-{
 
-}
- */
-int	file_print(t_file *file, const char *user, const char *group,
+int	file_print_long(t_file *file, const char *user, const char *group,
 	const t_field_widths fw, t_ls_opt options)
 {
 	(void)options;
@@ -123,8 +110,6 @@ int	file_print(t_file *file, const char *user, const char *group,
 	file_mode(mode, file);
 
 	time = file_time(file);
-
-	// TODO: Prefetch user and group names in hashmap
 
 	// TODO: Use macros for lu type identifiers
 	ft_printf("%*s %*lu %*s %*s %*lu %*s %s\n",

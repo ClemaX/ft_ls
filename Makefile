@@ -33,9 +33,9 @@ OBJS = $(SRCS:$(SRCDIR)/%.c=$(OBJDIR)/%.o)
 DEPS = $(OBJS:.o=.d)
 
 # Flags
-CFLAGS = -Wall -Wextra -Werror $(INCS:%=-I%) -g3 -fsanitize=address
+CFLAGS = -Wall -Wextra -Werror $(INCS:%=-I%)# -g3 -fsanitize=address
 DFLAGS = -MT $@ -MMD -MP -MF $(OBJDIR)/$*.d
-LDFLAGS = $(LIBDIRS:%=-L%) -g3 -fsanitize=address
+LDFLAGS = $(LIBDIRS:%=-L%)# -g3 -fsanitize=address
 LDLIBS = $(LIBARS:lib%.a=-l%)
 ARFLAGS = -rcus
 
@@ -72,6 +72,7 @@ $(BINDIR)/$(NAME): $(OBJS) $(LIBS) | $(BINDIR)
 # Use	@echo "AR $@"
 #		$(ARCHIVE.o) $@ $^
 # instead when building a static library
+
 clean:
 	$(foreach dir, $(LIBDIRS),\
 		echo "MK $(addprefix -C , $(dir)) $@" && make -C $(dir) $@ ; ):

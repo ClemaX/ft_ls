@@ -43,10 +43,13 @@
 // Long format field count
 # define FILE_FIELD_COUNT 6
 
-typedef char	t_file_mode[FILE_MODE_SIZE];
+typedef char		t_file_mode[FILE_MODE_SIZE];
 
-typedef int		t_field_widths[FILE_FIELD_COUNT];
+typedef unsigned	t_field_widths[FILE_FIELD_COUNT];
 
-int	file_print(t_file *file, const char *user, const char *group,
-	const t_field_widths fw, t_ls_opt options);
+
+int					file_print(t_file *file, t_ls_opt options, int fw);
+
+int					file_print_long(t_file *file, const char *user,
+	const char *group, const t_field_widths fw, t_ls_opt options);
 

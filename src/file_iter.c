@@ -5,7 +5,8 @@
 
 #include <file_iter.h>
 
-int	file_iter(const char *filepath, t_file_iter_fun *fun, void *fun_data)
+int	file_iter(const char *filepath, t_file_iter_fun *fun, void *fun_data,
+	unsigned char filter)
 {
 	char			full_path[PATH_MAX];
 	struct stat 	st;
@@ -26,7 +27,8 @@ int	file_iter(const char *filepath, t_file_iter_fun *fun, void *fun_data)
 				do
 				{
 					ent = readdir(dir);
-					if (ent != NULL)
+					if (ent != NULL
+					&& (filter == DT_UNKNOWN || filter == ent->d_type))
 					{
 						err = path_cat(full_path, filepath, ent->d_name) == NULL;
 						if (err == 0)

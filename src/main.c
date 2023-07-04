@@ -1,157 +1,13 @@
-#include <linux/limits.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <dirent.h>
+#include <errno.h>
+#include <string.h>
 
 #include <libft/printf.h>
-#include <libft/strings.h>
+#include <libft/opts.h>
+#include <libft/dirs.h>
 
-#include <file_list.h>
-
-static const char       *option_descriptions[] =
-{
-	"Display more information about each file",
-	"Recursively list subdirectories encountered",
-	"Include directory entries whose name begin with a dot",
-	"Reverse the order of sort",
-	"Display one file per line",
-};
-
-static const char	*option_names[] =
-{
-	"long-format",
-	"recursive",
-	"all",
-	"reverse-sort",
-	"one",
-};
-
-static const char	option_short_names[] =
-{
-	'l',
-	'R',
-	'a',
-	'r',
-	'1',
-};
-
-static t_ls_opt		get_long_option(const char *name)
-{
-	t_ls_opt	option;
-
-	option = 0;
-	while ((unsigned)option < sizeof(option_names) / sizeof(*option_names)
-	&& ft_strcmp(option_names[option], name) != 0)
-			option++;
-	if (option != sizeof(option_names) / sizeof(*option_names))
-			option = 1 << option;
-	else
-			option = LS_OERROR;
-	return (option);
-}
-
-static t_ls_opt		get_short_option(char c)
-{
-	const int	i = ft_strpos(option_short_names, c);
-	t_ls_opt	option;
-
-	if (i != -1)
-			option = 1 << i;
-	else
-			option = LS_OERROR;
-	return (option);
-
-}
-
-static t_ls_opt		get_options(int *i , const char *const *const av)
-{
-	t_ls_opt	options;
-	t_ls_opt	option;
-	size_t		j;
-
-	options = 0;
-	j = 0;
-	while (options != LS_OERROR && av[*i] != NULL && av[*i][j] == '-')
-	{
-		++j;
-		if (av[*i][j] == '-')
-		{
-			++j;
-			option = get_long_option(av[*i] + j);
-			if (option != LS_OERROR)
-				options |= option;
-			else
-			{
-				options = option;
-				ft_dprintf(STDERR_FILENO, "%s: illegal option -- %s\n",
-					av[0], av[*i] + j);
-			}
-		}
-		else
-		{
-			while (options != LS_OERROR && av[*i][j] != '\0')
-			{
-				option = get_short_option(av[*i][j]);
-				if (option != LS_OERROR)
-				{
-					options |= option;
-					++j;
-				}
-				else
-				{
-					options = option;
-					ft_dprintf(STDERR_FILENO, "%s: illegal option -- %c\n",
-						av[0], av[*i][j]);
-				}
-			}
-		}
-		(*i)++;
-		j = 0;
-	}
-	return (options);
-}
-
-static void		print_usage(const char *prog)
-{
-	const char      *fmt;
-	unsigned        i;
-
-	ft_printf(
-"Usage: %s [-lRart] [FILE]...\n\
-\
-List files in [FILE]... (the current working directory by default).\n\n\
-The options are:\n\
-", prog
-	);
-	i = 0;
-	while (i < sizeof(option_short_names))
-	{
-		if (option_names[i] == NULL)
-			fmt =  " -%c%-22.0s%s\n";
-		else
-			fmt = " -%c, --%-18s%s\n";
-		ft_dprintf(2, fmt, option_short_names[i], option_names[i],
-			option_descriptions[i]);
-		i++;
-	}
-}
-
-int	ft_ls(const char *filepath, t_ls_opt options)
-{
-	t_file_list	ls;
-	int			err;
-
-	err = file_list_init(&ls);
-	if (err == 0)
-	{
-		err = file_list(&ls, filepath, options);
-		if (err == 0)
-			file_list_print(&ls);
-		file_list_clear(&ls);
-	}
-	return (err);
-}
+#include <file_print.h>
 
 /*
  * Usage: ft_ls [-lRart]
@@ -225,31 +81,194 @@ int	ft_ls(const char *filepath, t_ls_opt options)
  *		t	if the sticky bit is set, and is searchable or executable.
  */
 
+static const t_opt_def	opt_def = {
+	.usage = "Usage: %s [-%s] [FILE]...\n\
+\
+List files in [FILE]... (the current working directory by default).\n\n\
+The options are:\n",
+	.short_opts = "lRar1",
+	.long_opts = (const char*[]){
+		"long-format",
+		"recursive",
+		"all",
+		"reverse-sort",
+		"one",
+	},
+	.desc = (const char*[]){
+		"Display more information about each file",
+		"Recursively list subdirectories encountered",
+		"Include directory entries whose name begin with a dot",
+		"Reverse the order of sort",
+		"Display one file per line",
+	},
+};
+
+/*
+static const char	*dir_basename(const char *path)
+{
+	int			i;
+	const char	*basename;
+
+	// TODO: Check safety and error cases
+	i = 0;
+	basename = path;
+	while (path[i] != '\0')
+	{
+		if (path[i] == '/' && path[i + 1])
+			basename = (char *)(path + i + 1);
+		i++;
+	}
+	return (basename);
+} */
+
+static int ft_ls_load(t_file_list *ls, const char *progname, const char **files,
+	t_ls_opt options)
+{
+	struct stat	st;
+	int			err;
+
+	err = 0;
+
+	// Add default directory when given an empty file array.
+	if (*files == NULL)
+		err = dir_add(&ls->directories, ".");
+
+	// Enumerate each accessible file and directory.
+	while (!err && *files != NULL)
+	{
+		err = stat(*files, &st);
+		if (!err)
+		{
+			if (S_ISDIR(st.st_mode))
+			{
+				// Add subdirectories to the list if recursion is enabled.
+				if (options & LS_ORECURSE)
+					err = dir_list(&ls->directories, *files);
+
+				// Add the directory to the list.
+				if (!err)
+					err = dir_add(&ls->directories, *files);
+			}
+/* 			else
+				// Add the file to the list
+				err = dir_add(&ls->files, *files); */
+		}
+		else
+		{
+			err = 0;
+			ft_dprintf(2, "%s: cannot access '%s': %s\n",
+				progname, *files, strerror(errno));
+		}
+		++files;
+	}
+	return (err);
+}
+
+static void	ft_ls_sort(t_file_list *ls)
+{
+	if ((ls->options & LS_OREVERSE) == 0)
+	{
+		ft_lstsort(&ls->directories, (t_cmp_fun*)file_cmp_name);
+		ft_lstsort(&ls->files, (t_cmp_fun*)file_cmp_name);
+	}
+	else
+	{
+		ft_lstsortrev(&ls->directories, (t_cmp_fun*)file_cmp_name);
+		ft_lstsortrev(&ls->files, (t_cmp_fun*)file_cmp_name);
+	}
+}
+// TODO: Fix ./ft_ls -
+
+static int	ft_ls_print(t_file_list *ls)
+{
+	t_list	*curr;
+	//t_file	*file;
+	int		err;
+
+	err = 0;
+	curr = ls->directories;
+	while (!err && curr != NULL)
+	{
+		//ft_dprintf(STDERR_FILENO, "Loading %s\n", (char*)curr->content);
+		//files = NULL;
+
+		// Load files from the current directory.
+		//err = dir_load(&files, (char*)curr->content, DT_UNKNOWN, DIR_OBASENAME);
+
+		err = file_list(ls, (const char *)curr->content);
+
+		if (!err)
+		{
+			file_list_print(ls);
+		}
+		else
+		{
+			ft_dprintf(STDERR_FILENO, "file_list: err: %d: %s\n", err, strerror(errno));
+		}
+
+		ft_lstclear(&ls->files, NULL);
+
+		curr = curr->next;
+	}
+	return (err);
+}
+
+static int	ft_ls(const char *progname, const char **files, t_ls_opt options)
+{
+	t_file_list	ls;
+	int			err;
+
+	err = file_list_init(&ls, options);
+
+	if (!err)
+	{
+		err = ft_ls_load(&ls, progname, files, options);
+
+		if (!err)
+		{
+			ft_ls_sort(&ls);
+			ft_ls_print(&ls);
+		}
+
+		file_list_clear(&ls);
+	}
+	return (err);
+}
+
+#ifdef BONUS
+struct winsize	ws;
+#endif
+
 int	main(int ac, const char **av)
 {
 	int			i;
 	t_ls_opt	options;
 	int			err;
 
-	i = 1;
-	options = get_options(&i, av);
-	err = options == LS_OERROR;
-	if (err == 0)
+	(void)ac;
+
+#ifdef BONUS
+	// TODO: Use winsize to determine collumn formatting
+	if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != 0)
 	{
-		if (i == ac)
-			err = ft_ls(".", options);
-		else
-		{
-			while (i < ac)
-			{
-				err |= ft_ls(av[i], options);
-				i++;
-			}
-		}
+		ws.ws_col = -1;
+		ws.ws_row = -1;
+	}
+
+	// TODO: Use locale to determine sort order
+	setlocale(LC_COLLATE, "");
+#endif
+
+	i = 1;
+	options = opts_get(&opt_def, &i, av);
+	err = options == OPT_ERROR;
+	if (!err)
+	{
+		err = ft_ls(av[0], av + i, options);
 		if (err != 0)
 			perror(av[0]);
 	}
 	else
-		print_usage(av[0]);
+		opts_usage(&opt_def, av[0]);
 	return (err);
 }

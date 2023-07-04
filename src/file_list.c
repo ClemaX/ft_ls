@@ -1,18 +1,15 @@
+#include <stdlib.h>
+#include <dirent.h>
 #include <grp.h>
 #include <pwd.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdlib.h>
+#include <unistd.h>
 
-#include <libft/hmap_i.h>
-#include <libft/lists.h>
 #include <libft/memory.h>
 #include <libft/printf.h>
 #include <libft/strings.h>
 #include <libft/numbers.h>
 
 #include <file_iter.h>
-#include <file_list.h>
 
 #include <file_print.h>
 
@@ -68,11 +65,8 @@ static int	file_load_ids(t_hmap_i *users, t_hmap_i *groups, uid_t uid,
 			name = ft_itoa(uid);
 
 		err = name == NULL;
-		if (err == 0)
-		{
+		if (!err)
 			err = hmap_i_set(users, uid, name) == NULL;
-			ft_dprintf(2, "Setting uid: %u name: %s\n", uid, name);
-		}
 	}
 
 	if (hmap_i_get(groups, gid) == NULL)
@@ -84,11 +78,8 @@ static int	file_load_ids(t_hmap_i *users, t_hmap_i *groups, uid_t uid,
 			name = ft_itoa(gid);
 
 		err = name == NULL;
-		if (err == 0)
-		{
+		if (!err)
 			err = hmap_i_set(groups, gid, name) == NULL;
-			ft_dprintf(2, "Setting gid: %u name: %s\n", gid, name);
-		}
 	}
 	return (err);
 }
@@ -100,28 +91,28 @@ int		file_load(const char *filepath, const char *basename,
 	int			err;
 	int			is_forwardref;
 
-	if (data->options & LS_OALL || *basename != '.')
+	if ((data->options & LS_OALL) || *basename != '.')
 	{
 		is_forwardref = S_ISDIR(st->st_mode) && !FILE_ISBACKREF(basename);
 		elem = file_new(filepath, basename, st);
 		err = elem == NULL;
-		if (err == 0)
+		if (!err)
 		{
 			err = file_load_ids(data->users, data->groups, st->st_uid,
 				st->st_gid);
-			if (err == 0 && is_forwardref && data->options & LS_ORECURSE)
+			if (!err && is_forwardref && (data->options & LS_ORECURSE))
 			{
 				t_file_list	list = {
 					.users = data->users,
 					.groups = data->groups,
 				};
 
-				err = file_list(&list, filepath, data->options);
+				err = file_list(&list, filepath);
 
-				if (err == 0)
+				if (!err)
 					((t_file *)elem->content)->children = list.files;
 			}
-			if (err == 0)
+			if (!err)
 				ft_lstadd_back(&data->files, elem);
 			else
 				free(elem);
@@ -158,68 +149,202 @@ static const char	*dir_basename(const char *path)
 	return (basename);
 }
 
-int		file_cmp_name(t_file *a, t_file *b)
+int			file_cmp_name(const char *basename_a, const char *basename_b)
 {
-	const char	*basename_a = dir_basename(a->name);
-	const char	*basename_b = dir_basename(b->name);
+#ifdef BONUS
 
+#else
 	return (ft_strcmpi(basename_b, basename_a));
+#endif
 }
 
-int		file_list_init(t_file_list *list)
+int			file_cmp(t_file *a, t_file *b)
+{
+	const char	*basename_a = !S_ISDIR(a->mode)? a->name : dir_basename(a->name);
+	const char	*basename_b = !S_ISDIR(a->mode) ? b->name : dir_basename(b->name);
+
+	return (file_cmp_name(basename_a, basename_b));
+}
+
+int			file_list_init(t_file_list *list, t_ls_opt options)
 {
 	int	err;
 
 	ft_bzero(list, sizeof(*list));
+
+	list->options = options;
+
 	list->users = hmap_i_new(FILE_HMAP_UID_SIZE);
 	err = list->users == NULL;
-	if (err == 0)
+
+	if (!err)
 	{
 		list->groups = hmap_i_new(FILE_HMAP_GID_SIZE);
 		err = list->groups == NULL;
+
+		if (!err)
+		{
+			// TODO: Use or remove
+			list->field_widths = NULL;
+		}
 	}
-	else
+
+	if (err)
 		hmap_i_clr(&list->users, free);
+
 	return (err);
 }
 
-int		file_list(t_file_list *list, const char *filepath, t_ls_opt options)
+int			file_list(t_file_list *list, const char *filepath)
 {
 	int			err;
 
 	list->parent = filepath;
-	list->options = options;
-	err = file_iter(filepath, (t_file_iter_fun*)file_load, list);
-	if (err == 0)
+	list->options = list->options | LS_OFIRST;
+
+	err = file_iter(filepath, (t_file_iter_fun*)file_load, list, DT_UNKNOWN);
+	/* if ((list->options & LS_ORECURSE) == 0)
+	else
+		err = 0; */
+
+	if (!err)
 	{
-		if ((options & LS_OREVERSE) == 0)
-			ft_lstsort(&list->files, (t_cmp_fun*)file_cmp_name);
+		if ((list->options & LS_OREVERSE) == 0)
+			ft_lstsort(&list->files, (t_cmp_fun*)file_cmp);
 		else
-			ft_lstsortrev(&list->files, (t_cmp_fun*)file_cmp_name);
+			ft_lstsortrev(&list->files, (t_cmp_fun*)file_cmp);
 	}
 	return (err);
+}
+/*
+static int		file_list_fw(const t_file_list *list)
+{
+	const t_list	*curr;
+	const t_file	*file;
+	int				fw;
+	int				len;
+
+	fw = 2;
+	curr = list->files;
+	while (curr)
+	{
+		file = curr->content;
+		len = ft_strlen(file->name);
+		if (len - 1 > fw)
+			fw = len - 1;
+		curr = curr->next;
+	}
+	return (fw);
+} */
+
+static blkcnt_t	file_list_fw_long(const t_file_list *list, t_field_widths fw)
+{
+	const t_list	*curr;
+	const t_file	*file;
+	const char		*name;
+	unsigned		length;
+	nlink_t			max_nlink;
+	off_t			max_size;
+	blkcnt_t		blocks;
+
+	blocks = 0;
+	max_nlink = 0;
+	max_size = 0;
+	curr = list->files;
+	while (curr)
+	{
+		file = curr->content;
+
+		name = hmap_i_get(list->users, file->uid)->value;
+		length = ft_strlen(name);
+		if (length > fw[LS_FUSER])
+			fw[LS_FUSER] = length;
+
+		name = hmap_i_get(list->groups, file->gid)->value;
+		length = ft_strlen(name);
+		if (length > fw[LS_FGROUP])
+			fw[LS_FGROUP] = length;
+
+		if (file->nlink > max_nlink)
+			max_nlink = file->nlink;
+
+		if (file->size > max_size)
+			max_size = file->size;
+
+		blocks += file->blocks * 512 / LS_BLOCK_SIZE;
+
+		curr = curr->next;
+	}
+	fw[LS_FNLINKS] = ft_numlen(max_nlink, 10);
+	fw[LS_FSIZE] = ft_numlen(max_size, 10);
+	return (blocks);
+}
+
+static void	file_list_print_short(const t_file_list *list)
+{
+	t_list	*curr;
+
+	curr = list->files;
+
+	while (curr != NULL)
+	{
+		while (curr != NULL)
+		{
+			ft_printf("%s", ((t_file *)curr->content)->name);
+
+			curr = curr->next;
+
+			// TODO: Determine field width by finding max_len in each column
+			// TODO: column count is capped to 1 if max_len exceeds 42
+
+			if (curr != NULL)
+				write(STDOUT_FILENO, " ", 1);
+		}
+		write(STDOUT_FILENO, "\n", 1);
+	}
+}
+
+static void file_list_print_long(const t_file_list *list)
+{
+	t_field_widths	fw = {};
+	const blkcnt_t	blocks = file_list_fw_long(list, fw);
+	t_list			*curr;
+	t_file			*file;
+
+	curr = list->files;
+
+	ft_printf("total: %ju\n", (uintmax_t)blocks);
+	while (curr != NULL)
+	{
+		file = curr->content;
+
+		file_print_long(file, hmap_i_get(list->users, file->uid)->value,
+			hmap_i_get(list->groups, file->gid)->value, fw, list->options);
+
+		curr = curr->next;
+	}
 }
 
 void	file_list_print(t_file_list *list)
 {
-	t_field_widths	fw = {};
-	t_list			*curr;
-	t_file			*file;
-	const char		*user;
-	const char		*group;
+	t_list	*curr;
+	t_file	*file;
 
-	if (list->options & LS_ORECURSE && list->parent != NULL)
-		ft_printf("\n%s:\n", list->parent);
-
-	curr = list->files;
-	while (curr != NULL)
+	if (list->options & LS_ORECURSE)
 	{
-		file = curr->content;
-		user = hmap_i_get(list->users, file->uid)->value;
-		group = hmap_i_get(list->groups, file->gid)->value;
-		file_print(file, user, group, fw, list->options);
-		curr = curr->next;
+		if (list->options & LS_OFIRST)
+		{
+			list->options &= ~LS_OFIRST;
+			ft_printf("%s:\n", list->parent);
+		}
+		else
+			ft_printf("\n%s:\n", list->parent);
 	}
+
+	if ((list->options & LS_OLONGFMT) == 0)
+		file_list_print_short(list);
+	else
+		file_list_print_long(list);
 
 	if (list->options & LS_ORECURSE)
 	{
@@ -234,7 +359,6 @@ void	file_list_print(t_file_list *list)
 					.users = list->users,
 					.groups = list->groups,
 					.parent = file->path,
-					.options = list->options,
 				};
 				file_list_print(&children_list);
 			}
@@ -243,15 +367,10 @@ void	file_list_print(t_file_list *list)
 	}
 }
 
-void	file_del(t_file *file)
-{
-	if (file->children)
-		ft_lstclear(&file->children, (t_lstcontent_fun*)file_del);
-}
-
 void	file_list_clear(t_file_list *list)
 {
 	hmap_i_clr(&list->users, free);
 	hmap_i_clr(&list->groups, free);
-	ft_lstclear(&list->files, (t_lstcontent_fun*)file_del);
+	ft_lstclear(&list->directories, NULL);
+	ft_lstclear(&list->files, NULL);
 }

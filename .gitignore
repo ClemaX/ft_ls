@@ -15,3 +15,6 @@ obj/
 .cache/
 .vimrc
 compile_commands.json
+
+# test
+test_dir
