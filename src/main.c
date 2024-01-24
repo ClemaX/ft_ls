@@ -81,26 +81,38 @@
  *		t	if the sticky bit is set, and is searchable or executable.
  */
 
-static const t_opt_def	opt_def = {
-	.usage = "Usage: %s [-%s] [FILE]...\n\
-\
-List files in [FILE]... (the current working directory by default).\n\n\
-The options are:\n",
-	.short_opts = "lRar1",
-	.long_opts = (const char*[]){
-		"long-format",
-		"recursive",
-		"all",
-		"reverse-sort",
-		"one",
+static const opt_spec	opt_specs[] = {
+	{
+		.short_flag = 'l',
+		.long_flag = "long-format",
+		.description = "Display more information about each file",
 	},
-	.desc = (const char*[]){
-		"Display more information about each file",
-		"Recursively list subdirectories encountered",
-		"Include directory entries whose name begin with a dot",
-		"Reverse the order of sort",
-		"Display one file per line",
+	{
+		.short_flag = 'R',
+		.long_flag = "recursive",
+		.description = "Recursively list subdirectories encountered",
 	},
+	{
+		.short_flag = 'a',
+		.long_flag = "all",
+		.description = "Include directory entries whose name begin with a dot",
+	},
+	{
+		.short_flag = 'l',
+		.long_flag = "long-format",
+		.description = "Display more information about each file",
+	},
+	{
+		.short_flag = 'r',
+		.long_flag = "reverse-sort",
+		.description = "Reverse the order of sort",
+	},
+	{
+		.short_flag = '1',
+		.long_flag = "one",
+		.description = "Display one file per line",
+	},
+
 };
 
 /*
@@ -260,7 +272,7 @@ int	main(int ac, const char **av)
 #endif
 
 	i = 1;
-	options = opts_get(&opt_def, &i, av);
+	options = opts_get(opt_specs, sizeof(opt_specs) / sizeof(*opt_specs), av, &i, NULL);
 	err = options == OPT_ERROR;
 	if (!err)
 	{
@@ -269,6 +281,6 @@ int	main(int ac, const char **av)
 			perror(av[0]);
 	}
 	else
-		opts_usage(&opt_def, av[0]);
+		opts_usage(opt_specs, sizeof(opt_specs) / sizeof(*opt_specs), av[0], " [FILE]...");
 	return (err);
 }
