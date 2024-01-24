@@ -136,14 +136,15 @@ static const char	*dir_basename(const char *path)
 static int ft_ls_load(t_file_list *ls, const char *progname, const char **files,
 	t_ls_opt options)
 {
+	const char	*default_files[] = {".", NULL};
 	struct stat	st;
 	int			err;
 
 	err = 0;
 
-	// Add default directory when given an empty file array.
+	// Use default files when given an empty file array.
 	if (*files == NULL)
-		err = dir_add(&ls->directories, ".");
+		files = default_files;
 
 	// Enumerate each accessible file and directory.
 	while (!err && *files != NULL)
