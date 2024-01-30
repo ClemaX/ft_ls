@@ -25,6 +25,7 @@ INCS = $(LIBINCS) $(INCDIR)
 SRCS = $(addprefix $(SRCDIR)/,\
 	file_iter.c\
 	file_list.c\
+	file_list_print.c\
 	file_print.c\
 	main.c\
 )
