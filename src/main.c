@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -6,6 +7,7 @@
 #include <libft/printf.h>
 #include <libft/opts.h>
 #include <libft/dirs.h>
+#include <libft/paths.h>
 
 #include <file_print.h>
 
@@ -162,9 +164,13 @@ static int ft_ls_load(t_file_list *ls, const char *progname, const char **files,
 				if (!err)
 					err = dir_add(&ls->directories, *files);
 			}
-/* 			else
+			else
+			{
+				char	*basename = ft_basename(*files);
 				// Add the file to the list
-				err = dir_add(&ls->files, *files); */
+				err = basename == NULL || file_load(*files, basename, &st, ls);
+				free(basename);
+			}
 		}
 		else
 		{
@@ -198,6 +204,14 @@ static int	ft_ls_print(t_file_list *ls)
 	//t_file	*file;
 	int		err;
 
+	if (ls->files != NULL)
+	{
+		file_list_print(ls);
+		ft_lstclear(&ls->files, NULL);
+	}
+	else
+		ls->options |= LS_OFIRST;
+
 	err = 0;
 	curr = ls->directories;
 	while (!err && curr != NULL)
@@ -226,6 +240,7 @@ static int	ft_ls_print(t_file_list *ls)
 	return (err);
 }
 
+// TODO: Fix listing with access errors
 static int	ft_ls(const char *progname, const char **files, t_ls_opt options)
 {
 	t_file_list	ls;
