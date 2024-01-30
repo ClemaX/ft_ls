@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <sys/types.h>
 #include <sys/ioctl.h>
+#include <sys/stat.h>
 #include <stdint.h>
 
 #include <libft/lists.h>
@@ -50,7 +51,6 @@ enum			e_ls_fields
 
 typedef struct	s_file
 {
-	t_list		*children;
 	char		*name;
 	char		*path;
 	mode_t		mode;
@@ -84,6 +84,10 @@ typedef struct	s_file_list
 }				t_file_list;
 
 int		file_cmp_name(const char *basename_a, const char *basename_b);
+
+
+int		file_load(const char *filepath, const char *basename,
+	const struct stat *st, t_file_list *data);
 
 int		file_list_init(t_file_list *list, t_ls_opt options);
 

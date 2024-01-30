@@ -97,7 +97,7 @@ const char	*file_time(t_file *file)
 	return (time);
 }
 
-int	file_print_long(t_file *file, const char *user, const char *group,
+int			file_print_long(t_file *file, const char *user, const char *group,
 	const t_field_widths fw, t_ls_opt options)
 {
 	(void)options;

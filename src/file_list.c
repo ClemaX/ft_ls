@@ -13,7 +13,7 @@
 
 #include <file_print.h>
 
-t_list	*file_new(const char *path, const char *name, const struct stat *st)
+t_list		*file_new(const char *path, const char *name, const struct stat *st)
 {
 	t_list	*elem;
 	t_file	*file;
@@ -28,7 +28,6 @@ t_list	*file_new(const char *path, const char *name, const struct stat *st)
 		file = (t_file*)(elem + 1);
 		elem->next = NULL;
 		elem->content = file;
-		file->children = NULL;
 		file->name = (char *)(file + 1);
 		file->path = file->name + name_size;
 		file->mode = st->st_mode;
@@ -84,34 +83,20 @@ static int	file_load_ids(t_hmap_i *users, t_hmap_i *groups, uid_t uid,
 	return (err);
 }
 
-int		file_load(const char *filepath, const char *basename,
+int			file_load(const char *filepath, const char *basename,
 	const struct stat *st, t_file_list *data)
 {
-	t_list		*elem;
-	int			err;
-	int			is_forwardref;
+	t_list	*elem;
+	int		err;
 
 	if ((data->options & LS_OALL) || *basename != '.')
 	{
-		is_forwardref = S_ISDIR(st->st_mode) && !FILE_ISBACKREF(basename);
 		elem = file_new(filepath, basename, st);
 		err = elem == NULL;
 		if (!err)
 		{
 			err = file_load_ids(data->users, data->groups, st->st_uid,
 				st->st_gid);
-			if (!err && is_forwardref && (data->options & LS_ORECURSE))
-			{
-				t_file_list	list = {
-					.users = data->users,
-					.groups = data->groups,
-				};
-
-				err = file_list(&list, filepath);
-
-				if (!err)
-					((t_file *)elem->content)->children = list.files;
-			}
 			if (!err)
 				ft_lstadd_back(&data->files, elem);
 			else
@@ -123,7 +108,7 @@ int		file_load(const char *filepath, const char *basename,
 	return (err);
 }
 
-int		file_cmp_type(t_file *a, t_file *b)
+int			file_cmp_type(t_file *a, t_file *b)
 {
 	if (S_ISDIR(a->mode) && !S_ISDIR(b->mode))
 		return (-1);
@@ -200,12 +185,8 @@ int			file_list(t_file_list *list, const char *filepath)
 	int			err;
 
 	list->parent = filepath;
-	list->options = list->options | LS_OFIRST;
 
 	err = file_iter(filepath, (t_file_iter_fun*)file_load, list, DT_UNKNOWN);
-	/* if ((list->options & LS_ORECURSE) == 0)
-	else
-		err = 0; */
 
 	if (!err)
 	{
@@ -290,7 +271,10 @@ static void	file_list_print_short(const t_file_list *list)
 	{
 		while (curr != NULL)
 		{
-			ft_printf("%s", ((t_file *)curr->content)->name);
+			if (list->parent != NULL)
+				ft_printf("%s", ((t_file *)curr->content)->name);
+			else
+				ft_printf("%s", ((t_file *)curr->content)->path);
 
 			curr = curr->next;
 
@@ -304,7 +288,7 @@ static void	file_list_print_short(const t_file_list *list)
 	}
 }
 
-static void file_list_print_long(const t_file_list *list)
+static void	file_list_print_long(const t_file_list *list)
 {
 	t_field_widths	fw = {};
 	const blkcnt_t	blocks = file_list_fw_long(list, fw);
@@ -325,12 +309,9 @@ static void file_list_print_long(const t_file_list *list)
 	}
 }
 
-void	file_list_print(t_file_list *list)
+void		file_list_print(t_file_list *list)
 {
-	t_list	*curr;
-	t_file	*file;
-
-	if (list->options & LS_ORECURSE)
+	if (list->parent && ((list->options & LS_ORECURSE) || list->directories->next))
 	{
 		if (list->options & LS_OFIRST)
 		{
@@ -345,29 +326,9 @@ void	file_list_print(t_file_list *list)
 		file_list_print_short(list);
 	else
 		file_list_print_long(list);
-
-	if (list->options & LS_ORECURSE)
-	{
-		curr = list->files;
-		while (curr != NULL)
-		{
-			file = curr->content;
-			if (file->children != NULL)
-			{
-				t_file_list	children_list = {
-					.files = file->children,
-					.users = list->users,
-					.groups = list->groups,
-					.parent = file->path,
-				};
-				file_list_print(&children_list);
-			}
-			curr = curr->next;
-		}
-	}
 }
 
-void	file_list_clear(t_file_list *list)
+void		file_list_clear(t_file_list *list)
 {
 	hmap_i_clr(&list->users, free);
 	hmap_i_clr(&list->groups, free);
