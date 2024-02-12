@@ -172,7 +172,7 @@ int			file_list_init(t_file_list *list, t_ls_opt options)
 	}
 
 	if (err)
-		hmap_i_clr(&list->users, free);
+		hmap_i_clr(&list->users, NULL);
 
 	return (err);
 }
@@ -197,8 +197,8 @@ int			file_list(t_file_list *list, const char *filepath)
 
 void		file_list_clear(t_file_list *list)
 {
-	hmap_i_clr(&list->users, free);
-	hmap_i_clr(&list->groups, free);
+	hmap_i_clr(&list->users, NULL);
+	hmap_i_clr(&list->groups, NULL);
 	ft_lstclear(&list->directories, NULL);
 	ft_lstclear(&list->files, NULL);
 }
