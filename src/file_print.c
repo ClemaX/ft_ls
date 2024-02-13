@@ -111,7 +111,6 @@ int			file_print_long(t_file *file, const char *user, const char *group,
 
 	time = file_time(file);
 
-	// TODO: Use macros for lu type identifiers
 	ft_printf("%*s %*lu %*s %*s %*lu %*s %s\n",
 		fw[0], mode,
 		fw[1], file->nlink,

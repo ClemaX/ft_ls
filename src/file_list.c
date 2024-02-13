@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <unistd.h>
 #include <dirent.h>
 #include <grp.h>
 #include <pwd.h>
@@ -6,6 +7,7 @@
 #include <libft/memory.h>
 #include <libft/numbers.h>
 #include <libft/strings.h>
+#include <libft/printf.h>
 
 #include <file_list.h>
 #include <file_iter.h>

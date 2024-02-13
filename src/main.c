@@ -135,6 +135,14 @@ static const char	*dir_basename(const char *path)
 	return (basename);
 } */
 
+static int ft_dir_perror(const char *filepath, int err, void *data)
+{
+	ft_dprintf(STDERR_FILENO, "%s: cannot open directory %s: %s\n",
+		(const char*)data, filepath, strerror(err));
+
+	return 0;
+}
+
 static int ft_ls_load(t_file_list *ls, const char *progname, const char **files,
 	t_ls_opt options)
 {
@@ -158,7 +166,8 @@ static int ft_ls_load(t_file_list *ls, const char *progname, const char **files,
 			{
 				// Add subdirectories to the list if recursion is enabled.
 				if (options & LS_ORECURSE)
-					err = dir_list(&ls->directories, *files);
+					err = dir_list(&ls->directories, *files, ft_dir_perror,
+						(void*)progname);
 
 				// Add the directory to the list.
 				if (!err)
@@ -196,12 +205,10 @@ static void	ft_ls_sort(t_file_list *ls)
 		ft_lstsortrev(&ls->files, (t_cmp_fun*)file_cmp_name);
 	}
 }
-// TODO: Fix ./ft_ls -
 
-static int	ft_ls_print(t_file_list *ls)
+static int	ft_ls_print(t_file_list *ls, const char *progname)
 {
 	t_list	*curr;
-	//t_file	*file;
 	int		err;
 
 	if (ls->files != NULL)
@@ -216,21 +223,15 @@ static int	ft_ls_print(t_file_list *ls)
 	curr = ls->directories;
 	while (!err && curr != NULL)
 	{
-		//ft_dprintf(STDERR_FILENO, "Loading %s\n", (char*)curr->content);
-		//files = NULL;
+		const char *const filepath = curr->content;
 
-		// Load files from the current directory.
-		//err = dir_load(&files, (char*)curr->content, DT_UNKNOWN, DIR_OBASENAME);
-
-		err = file_list(ls, (const char *)curr->content);
+		err = file_list(ls, filepath);
 
 		if (!err)
-		{
 			file_list_print(ls);
-		}
 		else
 		{
-			ft_dprintf(STDERR_FILENO, "file_list: err: %d: %s\n", err, strerror(errno));
+			ft_dir_perror(filepath, err, (void*)progname);
 		}
 
 		ft_lstclear(&ls->files, NULL);
@@ -255,7 +256,7 @@ static int	ft_ls(const char *progname, const char **files, t_ls_opt options)
 		if (!err)
 		{
 			ft_ls_sort(&ls);
-			ft_ls_print(&ls);
+			ft_ls_print(&ls, progname);
 		}
 
 		file_list_clear(&ls);

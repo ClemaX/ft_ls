@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <stdlib.h>
 #include <dirent.h>
 
@@ -16,45 +17,52 @@ int	file_iter(const char *filepath, t_file_iter_fun *fun, void *fun_data,
 	int				err;
 
 	err = stat(filepath, &st);
-	if (err == 0)
+	if (err != 0)
+		goto access_error;
+
+	if (S_ISDIR(st.st_mode))
 	{
-		if (S_ISDIR(st.st_mode))
+		dir = opendir(filepath);
+		err = dir == NULL;
+
+		if (err != 0)
+			goto access_error;
+
+		do
 		{
-			dir = opendir(filepath);
-			err = dir == NULL;
-			if (err == 0)
+			ent = readdir(dir);
+			if (ent != NULL && (filter == DT_UNKNOWN || filter == ent->d_type))
 			{
-				do
+				err = path_cat(full_path, filepath, ent->d_name) == NULL;
+				if (err == 0)
 				{
-					ent = readdir(dir);
-					if (ent != NULL
-					&& (filter == DT_UNKNOWN || filter == ent->d_type))
-					{
-						err = path_cat(full_path, filepath, ent->d_name) == NULL;
-						if (err == 0)
-						{
-							err = stat(full_path, &st);
-							if (err == 0)
-								err = fun(full_path, ent->d_name, &st, fun_data);
-						}
-						// TODO: Handle MAX_PATH error
-					}
+					err = stat(full_path, &st);
+					if (err == 0)
+						err = fun(full_path, ent->d_name, &st, fun_data);
 				}
-				while (err == 0 && ent != NULL);
-				closedir(dir);
+				// TODO: Handle MAX_PATH error
 			}
 		}
-		else
+		while (err == 0 && ent != NULL);
+
+		closedir(dir);
+	}
+	else
+	{
+		basename = ft_basename(filepath);
+		err = basename == NULL;
+		if (err == 0)
 		{
-			basename = ft_basename(filepath);
-			err = basename == NULL;
-			if (err == 0)
-			{
-				err = fun(filepath, basename, &st, fun_data);
-				free(basename);
-			}
+			err = fun(filepath, basename, &st, fun_data);
+			free(basename);
 		}
 	}
-	// TODO: Handle access errors
+	goto done;
+
+
+access_error:
+	err = errno;
+
+done:
 	return (err);
 }
