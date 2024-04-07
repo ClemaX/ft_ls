@@ -43,7 +43,9 @@ t_list		*file_new(const char *path, const char *name, const struct stat *st)
 	return (elem);
 }
 
-static int	file_load_ids(t_hmap_i *users, t_hmap_i *groups, uid_t uid,
+
+// TODO: Add force numeric UID option
+static int			file_load_ids(t_hmap_i *users, t_hmap_i *groups, uid_t uid,
 	gid_t gid)
 {
 	struct passwd	*user_ent;
@@ -52,35 +54,32 @@ static int	file_load_ids(t_hmap_i *users, t_hmap_i *groups, uid_t uid,
 	int				err;
 
 	err = 0;
+
 	if (hmap_i_get(users, uid) == NULL)
 	{
 		user_ent = getpwuid(uid);
 		if (user_ent != NULL)
-			name = user_ent->pw_name;
+			name = ft_strdup(user_ent->pw_name);
 		else
 			name = ft_itoa(uid);
 
-		err = name == NULL;
-		if (!err)
-			err = hmap_i_set(users, uid, name) == NULL;
+		err = name == NULL || hmap_i_set(users, uid, name) == NULL;
 	}
 
-	if (hmap_i_get(groups, gid) == NULL)
+	if (err == 0 && hmap_i_get(groups, gid) == NULL)
 	{
 		group_ent = getgrgid(gid);
 		if (group_ent != NULL)
-			name = group_ent->gr_name;
+			name = ft_strdup(group_ent->gr_name);
 		else
 			name = ft_itoa(gid);
 
-		err = name == NULL;
-		if (!err)
-			err = hmap_i_set(groups, gid, name) == NULL;
+		err = name == NULL || hmap_i_set(groups, gid, name) == NULL;
 	}
 	return (err);
 }
 
-int			file_load(const char *filepath, const char *basename,
+int					file_load(const char *filepath, const char *basename,
 	const struct stat *st, t_file_list *data)
 {
 	t_list	*elem;
@@ -105,7 +104,7 @@ int			file_load(const char *filepath, const char *basename,
 	return (err);
 }
 
-int			file_cmp_type(t_file *a, t_file *b)
+int					file_cmp_type(t_file *a, t_file *b)
 {
 	if (S_ISDIR(a->mode) && !S_ISDIR(b->mode))
 		return (-1);
