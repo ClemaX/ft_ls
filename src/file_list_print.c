@@ -73,7 +73,8 @@ static blkcnt_t	file_list_fw_long(const t_file_list *list, t_field_widths fw)
 
 static void	file_list_print_short(const t_file_list *list)
 {
-	t_list	*curr;
+	const char	*fmt = list->options & LS_OONE ? "%s\n" : "%s";
+	t_list		*curr;
 
 	curr = list->files;
 
@@ -82,19 +83,20 @@ static void	file_list_print_short(const t_file_list *list)
 		while (curr != NULL)
 		{
 			if (list->parent != NULL)
-				ft_printf("%s", ((t_file *)curr->content)->name);
+				ft_printf(fmt, ((t_file *)curr->content)->name);
 			else
-				ft_printf("%s", ((t_file *)curr->content)->path);
+				ft_printf(fmt, ((t_file *)curr->content)->path);
 
 			curr = curr->next;
 
 			// TODO: Determine field width by finding max_len in each column
 			// TODO: column count is capped to 1 if max_len exceeds 42
 
-			if (curr != NULL)
+			if (curr != NULL && !(list->options & LS_OONE))
 				write(STDOUT_FILENO, " ", 1);
 		}
-		write(STDOUT_FILENO, "\n", 1);
+		if (!(list->options & LS_OONE))
+			write(STDOUT_FILENO, "\n", 1);
 	}
 }
 
