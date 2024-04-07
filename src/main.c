@@ -100,11 +100,6 @@ static const opt_spec	opt_specs[] = {
 		.description = "Include directory entries whose name begin with a dot",
 	},
 	{
-		.short_flag = 'l',
-		.long_flag = "long-format",
-		.description = "Display more information about each file",
-	},
-	{
 		.short_flag = 'r',
 		.long_flag = "reverse-sort",
 		.description = "Reverse the order of sort",
