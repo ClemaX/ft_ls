@@ -130,8 +130,7 @@ static const char	*dir_basename(const char *path)
 	return (basename);
 } */
 
-static int ft_ls_load(t_file_list *ls, const char *progname, const char **files,
-	t_ls_opt options)
+static int ft_ls_load(t_file_list *ls, const char *progname, const char **files)
 {
 	const char	*default_files[] = {".", NULL};
 	struct stat	st;
@@ -151,18 +150,14 @@ static int ft_ls_load(t_file_list *ls, const char *progname, const char **files,
 		{
 			if (S_ISDIR(st.st_mode))
 			{
-				// Add subdirectories to the list if recursion is enabled.
-				if (options & LS_ORECURSE)
-					err = dir_list(&ls->directories, *files);
-
 				// Add the directory to the list.
-				if (!err)
-					err = dir_add(&ls->directories, *files);
+				err = dir_add(&ls->directories, *files);
 			}
 			else
 			{
 				char	*basename = ft_basename(*files);
-				// Add the file to the list
+
+				// Add the file to the list.
 				err = basename == NULL || file_load(*files, basename, &st, ls);
 				free(basename);
 			}
@@ -193,14 +188,45 @@ static void	ft_ls_sort(t_file_list *ls)
 }
 // TODO: Fix ./ft_ls -
 
+static int	ft_ls_print_recursive(t_file_list *ls, const char *directory_path)
+{
+	int	err;
+
+	err = file_list(ls, directory_path);
+
+	if (!err)
+	{
+		// Print children files list.
+		file_list_print(ls);
+	}
+	else
+		ft_dprintf(STDERR_FILENO, "file_list: err: %d: %s\n", err, strerror(errno));
+
+	t_list	*files = ls->files;
+
+	ls->files = NULL;
+
+	for (t_list *curr = files; err == 0 && curr != NULL; curr = curr->next)
+	{
+		const t_file	*file = curr->content;
+
+		if (S_ISDIR(file->mode))
+			ft_ls_print_recursive(ls, file->path);
+	}
+
+	ft_lstclear(&files, NULL);
+
+	return err;
+}
+
 static int	ft_ls_print(t_file_list *ls)
 {
 	t_list	*curr;
-	//t_file	*file;
 	int		err;
 
 	if (ls->files != NULL)
 	{
+		// Print and clear files if there are any.
 		file_list_print(ls);
 		ft_lstclear(&ls->files, NULL);
 	}
@@ -208,29 +234,40 @@ static int	ft_ls_print(t_file_list *ls)
 		ls->options |= LS_OFIRST;
 
 	err = 0;
-	curr = ls->directories;
-	while (!err && curr != NULL)
+
+	// Iterate over requested directories.
+	for (curr = ls->directories; !err && curr != NULL; curr = curr->next)
 	{
-		//ft_dprintf(STDERR_FILENO, "Loading %s\n", (char*)curr->content);
-		//files = NULL;
-
-		// Load files from the current directory.
-		//err = dir_load(&files, (char*)curr->content, DT_UNKNOWN, DIR_OBASENAME);
-
 		err = file_list(ls, (const char *)curr->content);
 
 		if (!err)
 		{
+			// Print children files list.
 			file_list_print(ls);
 		}
 		else
-		{
 			ft_dprintf(STDERR_FILENO, "file_list: err: %d: %s\n", err, strerror(errno));
+
+		if (ls->options & LS_ORECURSE)
+		{
+			t_list	*files = ls->files;
+
+			ls->files = NULL;
+
+			for (t_list *curr = files; err == 0 && curr != NULL; curr = curr->next)
+			{
+				const t_file	*file = curr->content;
+
+				if (S_ISDIR(file->mode))
+				{
+					ft_ls_print_recursive(ls, file->path);
+				}
+			}
+
+			ls->files = files;
 		}
 
 		ft_lstclear(&ls->files, NULL);
-
-		curr = curr->next;
 	}
 	return (err);
 }
@@ -245,11 +282,14 @@ static int	ft_ls(const char *progname, const char **files, t_ls_opt options)
 
 	if (!err)
 	{
-		err = ft_ls_load(&ls, progname, files, options);
+		// Load requested files and directories.
+		err = ft_ls_load(&ls, progname, files);
 
 		if (!err)
 		{
+			// Sort the requested files and directories.
 			ft_ls_sort(&ls);
+			// Print the requested files and directories.
 			ft_ls_print(&ls);
 		}
 
