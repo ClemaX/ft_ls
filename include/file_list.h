@@ -85,7 +85,6 @@ typedef struct	s_file_list
 
 int		file_cmp_name(const char *basename_a, const char *basename_b);
 
-
 int		file_load(const char *filepath, const char *basename,
 	const struct stat *st, t_file_list *data);
 

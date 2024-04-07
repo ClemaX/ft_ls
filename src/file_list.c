@@ -142,8 +142,8 @@ int			file_cmp_name(const char *basename_a, const char *basename_b)
 
 int			file_cmp(t_file *a, t_file *b)
 {
-	const char	*basename_a = !S_ISDIR(a->mode)? a->name : dir_basename(a->name);
-	const char	*basename_b = !S_ISDIR(a->mode) ? b->name : dir_basename(b->name);
+	const char	*basename_a = !S_ISDIR(a->mode) ? a->name : dir_basename(a->name);
+	const char	*basename_b = !S_ISDIR(b->mode) ? b->name : dir_basename(b->name);
 
 	return (file_cmp_name(basename_a, basename_b));
 }
