@@ -186,21 +186,25 @@ static void	ft_ls_sort(t_file_list *ls)
 		ft_lstsortrev(&ls->files, (t_cmp_fun*)file_cmp_name);
 	}
 }
-// TODO: Fix ./ft_ls -
 
-static int	ft_ls_print_recursive(t_file_list *ls, const char *directory_path)
+static int dir_perror(const char *filepath, int err, const char *data)
+{
+	ft_dprintf(STDERR_FILENO, "%s: cannot open directory %s: %s\n",
+		(const char*)data, filepath, strerror(err));
+
+	return 0;
+}
+
+static int	ft_ls_print_recursive(t_file_list *ls, const char *directory_path, const char *progname)
 {
 	int	err;
 
 	err = file_list(ls, directory_path);
 
 	if (!err)
-	{
-		// Print children files list.
 		file_list_print(ls);
-	}
 	else
-		ft_dprintf(STDERR_FILENO, "file_list: err: %d: %s\n", err, strerror(errno));
+		dir_perror(directory_path, errno, progname);
 
 	t_list	*files = ls->files;
 
@@ -211,7 +215,7 @@ static int	ft_ls_print_recursive(t_file_list *ls, const char *directory_path)
 		const t_file	*file = curr->content;
 
 		if (S_ISDIR(file->mode))
-			ft_ls_print_recursive(ls, file->path);
+			ft_ls_print_recursive(ls, file->path, progname);
 	}
 
 	ft_lstclear(&files, NULL);
@@ -219,7 +223,7 @@ static int	ft_ls_print_recursive(t_file_list *ls, const char *directory_path)
 	return err;
 }
 
-static int	ft_ls_print(t_file_list *ls)
+static int	ft_ls_print(t_file_list *ls, const char *progname)
 {
 	t_list	*curr;
 	int		err;
@@ -241,12 +245,9 @@ static int	ft_ls_print(t_file_list *ls)
 		err = file_list(ls, (const char *)curr->content);
 
 		if (!err)
-		{
-			// Print children files list.
 			file_list_print(ls);
-		}
 		else
-			ft_dprintf(STDERR_FILENO, "file_list: err: %d: %s\n", err, strerror(errno));
+			dir_perror(curr->content, errno, progname);
 
 		if (ls->options & LS_ORECURSE)
 		{
@@ -260,7 +261,7 @@ static int	ft_ls_print(t_file_list *ls)
 
 				if (S_ISDIR(file->mode))
 				{
-					ft_ls_print_recursive(ls, file->path);
+					ft_ls_print_recursive(ls, file->path, progname);
 				}
 			}
 
@@ -273,6 +274,8 @@ static int	ft_ls_print(t_file_list *ls)
 }
 
 // TODO: Fix listing with access errors
+// TODO: Fix ./ft_ls -
+// TODO: Fix symlinks print (long-fmt) and follow
 static int	ft_ls(const char *progname, const char **files, t_ls_opt options)
 {
 	t_file_list	ls;
@@ -290,7 +293,7 @@ static int	ft_ls(const char *progname, const char **files, t_ls_opt options)
 			// Sort the requested files and directories.
 			ft_ls_sort(&ls);
 			// Print the requested files and directories.
-			ft_ls_print(&ls);
+			ft_ls_print(&ls, progname);
 		}
 
 		file_list_clear(&ls);
